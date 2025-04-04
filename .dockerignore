@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+*.ppk
+*.pem
+.ipynb_checkpoints/
+notebooks/
+.idea/
+*.ipynb
+.env
