@@ -8,7 +8,7 @@ from pathlib import Path
 app = FastAPI()
 
 # Definir la ruta del modelo entrenado
-model_path = Path("models/churn_model_random_forest.joblib")
+model_path = Path(__file__).parent.parent / "models" / "churn_model_random_forest.joblib"
 
 
 # Cargar el modelo entrenado
