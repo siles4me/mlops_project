@@ -1,16 +1,15 @@
-# .github/workflows/main.yml
 name: CI/CD Churn API
 
 on:
   push:
     branches:
-      - develop
+      - dev
   pull_request:
     branches:
       - staging
 
 jobs:
-  retraining_churn_model:
+  retrain_model:
     runs-on: ubuntu-latest
     container: docker://dvcorg/cml:latest
     env:
@@ -24,21 +23,19 @@ jobs:
       - name: Install dependencies
         run: pip3 install -r requirements.txt
 
-      - name: Execute training model
+      - name: Execute training script
         run: python3 src/train_model.py
 
       - name: Generate CML report
         run: |
           echo "## Model metrics" > report.md
           cat metrics.txt >> report.md
-          
           echo "## Feature Importance" >> report.md
           cml-publish feature_importance.png --md >> report.md
-          
           cml-send-comment report.md
 
   build_and_deploy:
-    needs: retraining_churn_model
+    needs: retrain_model
     runs-on: ubuntu-latest
 
     steps:
@@ -57,7 +54,7 @@ jobs:
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKER_USERNAME }}/churn-api:dev
 
-      - name: Deploy to EC2 instance
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.EC2_HOST }}

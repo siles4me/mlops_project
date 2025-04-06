@@ -1,0 +1,7 @@
+jupyterlab
+notebook
+matplotlib
+ipython
+pytest
+black
+flake8

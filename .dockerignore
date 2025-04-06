@@ -1,12 +1,14 @@
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.pkl
-*.ppk
-*.pem
-.ipynb_checkpoints/
+# Excluir notebooks y metadatos
 notebooks/
-.idea/
 *.ipynb
-.env
+
+# IDE y entorno local
+.idea/
+.vscode/
+.venv/
+
+# Datos crudos (no necesarios en la API)
+data/
+
+# Git
+.git/
