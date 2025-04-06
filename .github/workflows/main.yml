@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     container: docker://dvcorg/cml:latest
     env:
-      repo_token: ${{ secrets.GITHUBTOKEN }}
+      repo_token: ${{ secrets.GITHUB_TOKEN }}  # Asegúrate de que el token esté configurado correctamente
     steps:
       - uses: actions/checkout@v2
 
@@ -31,8 +31,8 @@ jobs:
           echo "## Model metrics" > report.md
           cat metrics.txt >> report.md
           echo "## Feature Importance" >> report.md
-          cml-publish feature_importance.png --md >> report.md
-          cml-send-comment report.md
+          # Usamos el nuevo comando cml comment create para publicar la imagen y reportar en GitHub
+          cml comment create --message "$(cat report.md)" --asset feature_importance.png
 
   build_and_deploy:
     needs: retrain_model
