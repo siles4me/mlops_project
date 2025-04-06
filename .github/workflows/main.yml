@@ -28,14 +28,10 @@ jobs:
 
       - name: Generate Model Report
         run: |
-          # Crea el archivo report.md con información básica
-          echo "## Model metrics" > report.md
-          # Agrega el contenido de metrics.txt al archivo report.md
-          cat metrics.txt >> report.md
-          # Agrega la sección de importancia de características al archivo report.md
-          echo "## Feature Importance" >> report.md
-          # Publica el reporte en el comentario de CML y agrega la imagen como asset
-          cml comment create --message "$(cat report.md)" --asset feature_importance.png
+          # Extrae las métricas desde metrics.txt
+          METRICS=$(cat metrics.txt)
+          # Agrega las métricas y la importancia de características en un solo comentario CML
+          cml comment create --message "## Model metrics\n$METRICS\n## Feature Importance" --asset feature_importance.png
 
   build_and_deploy:
     needs: retrain_model
