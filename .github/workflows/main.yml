@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     container: docker://dvcorg/cml:latest
     env:
-      repo_token: ${{ secrets.GITHUB_TOKEN }}
+      repo_token: ${{ secrets.GITHUBTOKEN }}
     steps:
       - uses: actions/checkout@v2
 
@@ -26,14 +26,17 @@ jobs:
       - name: Execute training script
         run: python3 src/train_model.py
 
-      - name: Generate CML report
+      - name: Generate Model Report
         run: |
+          # Crea el archivo report.md con información básica
           echo "## Model metrics" > report.md
+          # Agrega el contenido de metrics.txt al archivo report.md
           cat metrics.txt >> report.md
+          # Agrega la sección de importancia de características al archivo report.md
           echo "## Feature Importance" >> report.md
-          # El comando corregido con el archivo markdown
+          # Publica el reporte en el comentario de CML y agrega la imagen como asset
           cml comment create --message "$(cat report.md)" --asset feature_importance.png
-          
+
   build_and_deploy:
     needs: retrain_model
     runs-on: ubuntu-latest
