@@ -26,13 +26,6 @@ jobs:
       - name: Execute training script
         run: python3 src/train_model.py
 
-      - name: Generate Model Report
-        run: |
-          # Extrae las métricas desde metrics.txt
-          METRICS=$(cat metrics.txt)
-          # Agrega las métricas y la importancia de características en un solo comentario CML
-          cml comment create --message "## Model metrics\n$METRICS\n## Feature Importance" --asset feature_importance.png
-
   build_and_deploy:
     needs: retrain_model
     runs-on: ubuntu-latest
