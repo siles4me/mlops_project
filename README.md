@@ -17,8 +17,6 @@ mlops_project/
 │   ├── churn_model.joblib            # Modelo entrenado 
 │   ├── encoder.joblib               # Preprocesador ColumnTransformer 
 │   └── expected_columns.joblib      # Columnas esperadas para predicción
-├── notebooks/
-│   └── limpieza_y_exploracion.ipynb  # Notebook de limpieza y análisis exploratorio
 ├── src/
 │   ├── app.py                       # API con FastAPI para predicción
 │   ├── train_model.py               # Script de entrenamiento y reentrenamiento
