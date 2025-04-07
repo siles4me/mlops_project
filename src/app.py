@@ -1,90 +1,87 @@
-from fastapi import FastAPI, HTTPException
-import joblib
+from fastapi import FastAPI, HTTPException, status
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field, field_validator, conint, confloat
+from typing import Literal
 import pandas as pd
-from pydantic import BaseModel
+import joblib
 from pathlib import Path
+import uvicorn
 
-# Crear instancia de FastAPI
-app = FastAPI()
+app = FastAPI(
+    title="Churn Prediction API",
+    version="1.0.0",
+    description="Modelo predictivo para determinar si un cliente hará churn"
+)
 
-# Definir la ruta del modelo entrenado
-model_path = Path(__file__).parent.parent / "models" / "churn_model_random_forest.joblib"
+MODEL_PATH = Path("models/churn_model.joblib")
+COLUMNS_PATH = Path("models/expected_columns.joblib")
 
+try:
+    model = joblib.load(MODEL_PATH)
+    expected_columns = joblib.load(COLUMNS_PATH)
+except Exception as e:
+    raise RuntimeError(f"Error loading model or expected columns: {e}")
 
-# Cargar el modelo entrenado
-if not model_path.exists():
-    raise Exception(f"El modelo no se encuentra en la ruta: {model_path}")
+class ChurnInput(BaseModel):
+    gender: Literal["Female", "Male"]
+    SeniorCitizen: conint(ge=0, le=1)
+    Partner: Literal["Yes", "No"]
+    Dependents: Literal["Yes", "No"]
+    tenure: conint(ge=0)
+    PhoneService: Literal["Yes", "No"]
+    MultipleLines: Literal["Yes", "No", "No phone service"]
+    InternetService: Literal["DSL", "Fiber optic", "No"]
+    OnlineSecurity: Literal["Yes", "No", "No internet service"]
+    OnlineBackup: Literal["Yes", "No", "No internet service"]
+    DeviceProtection: Literal["Yes", "No", "No internet service"]
+    TechSupport: Literal["Yes", "No", "No internet service"]
+    StreamingTV: Literal["Yes", "No", "No internet service"]
+    StreamingMovies: Literal["Yes", "No", "No internet service"]
+    Contract: Literal["Month-to-month", "One year", "Two year"]
+    PaperlessBilling: Literal["Yes", "No"]
+    PaymentMethod: Literal[
+        "Electronic check", "Mailed check", "Bank transfer (automatic)", "Credit card (automatic)"
+    ]
+    MonthlyCharges: confloat(gt=0)
+    TotalCharges: confloat(gt=0)
 
-model = joblib.load(model_path)
+    @field_validator("TotalCharges")
+    def check_total_charges(cls, value):
+        if value < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="TotalCharges debe ser mayor que cero."
+            )
+        return value
 
-# Obtener las columnas del modelo
-expected_columns = model.feature_names_in_
-
-# Definir la estructura de los datos de entrada
-class CustomerFeatures(BaseModel):
-    tenure: int
-    MonthlyCharges: float
-    TotalCharges: float
-    gender: str
-    SeniorCitizen: int
-    Partner: str
-    Dependents: str
-    PhoneService: str
-    MultipleLines: str
-    InternetService: str
-    OnlineSecurity: str
-    OnlineBackup: str
-    DeviceProtection: str
-    TechSupport: str
-    StreamingTV: str
-    StreamingMovies: str
-    Contract: str
-    PaperlessBilling: str
-    PaymentMethod: str
-
-# Endpoint de prueba
-@app.get("/")
-def home():
-    return {"message": "API de Predicción de Churn Activa 🚀"}
-
-# Función para preprocesar la entrada
-def preprocess_input(data: pd.DataFrame) -> pd.DataFrame:
-    """Aplica limpieza y transformación de datos antes de la predicción."""
-    # Convertir TotalCharges a numérico (para evitar valores vacíos)
-    data["TotalCharges"] = pd.to_numeric(data["TotalCharges"], errors="coerce").fillna(0)
-
-    # Convertir variables categóricas a valores numéricos mediante One-Hot Encoding
-    categorical_columns = ["gender", "Partner", "Dependents", "PhoneService",
-                           "MultipleLines", "InternetService", "OnlineSecurity",
-                           "OnlineBackup", "DeviceProtection", "TechSupport",
-                           "StreamingTV", "StreamingMovies", "Contract",
-                           "PaperlessBilling", "PaymentMethod"]
-
-    data = pd.get_dummies(data, columns=categorical_columns, drop_first=True)
-
-    # Asegurarse de que las columnas coincidan con las esperadas por el modelo
-    data = data.reindex(columns=expected_columns, fill_value=0)
-
-    return data
-
-# Endpoint para realizar predicciones
-@app.post("/predict")
-def predict_churn(features: CustomerFeatures):
-    """ Realiza la predicción del churn para un cliente con las características dadas. """
+@app.post("/api/v1/predict-churn", tags=["churn"])
+async def predict_churn(data: ChurnInput):
     try:
-        # Convertir JSON a DataFrame
-        input_data = pd.DataFrame([features.dict()])
+        df = pd.DataFrame([data.dict()])
+        df["SeniorCitizen"] = df["SeniorCitizen"].astype(str)
 
-        # Aplicar las transformaciones necesarias
-        input_data = preprocess_input(input_data)
+        # Aseguramos orden correcto
+        df = df.reindex(columns=expected_columns)
 
-        # Realizar la predicción
-        prediction = model.predict(input_data)
-        probability = model.predict_proba(input_data)[:, 1]
+        # Predicción
+        prediction = model.predict(df)[0]
+        proba = model.predict_proba(df)[0][1]
 
-        return {
-            "prediction": int(prediction[0]),  # 0 = No churn, 1 = Churn
-            "churn_probability": float(probability[0])
-        }
+        churn_label = "Cliente propenso a Churn" if prediction == 1 else "Cliente NO propenso a Churn"
+
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={
+                "prediction": churn_label,
+                "probabilidad_churn": f"{proba:.2%}"
+            }
+        )
+
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno: {str(e)}"
+        )
+
+if __name__ == "__main__":
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
