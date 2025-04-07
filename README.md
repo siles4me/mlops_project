@@ -22,7 +22,7 @@ mlops_project/
 ├── src/
 │   ├── app.py                       # API con FastAPI para predicción
 │   ├── train_model.py               # Script de entrenamiento y reentrenamiento
-│   └── utils.py                     # Funciones auxiliares (si aplican)
+│   └── app_ui.py.py                 # app de ejecucion de streamlit 
 ├── .dockerignore                    # Archivos/carpetas excluidos del build Docker
 ├── .gitignore                       # Archivos/carpetas excluidos de Git
 ├── Dockerfile                       # Multistage build para la API
